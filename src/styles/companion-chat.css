@@ -84,6 +84,73 @@
 .message-content {
     line-height: 1.6;
     font-size: 1rem;
+    white-space: pre-wrap; /* Preserve line breaks and spaces */
+    word-wrap: break-word; /* Break long words */
+}
+
+/* Markdown styling for structured content */
+.message-content strong,
+.message-content b {
+    font-weight: 700;
+    color: #1F2937;
+}
+
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    font-weight: 600;
+    margin: 1rem 0 0.5rem 0;
+    color: #1F2937;
+}
+
+.message-content h1 { font-size: 1.5rem; }
+.message-content h2 { font-size: 1.25rem; }
+.message-content h3 { font-size: 1.125rem; }
+
+.message-content ul,
+.message-content ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.message-content li {
+    margin: 0.25rem 0;
+    line-height: 1.5;
+}
+
+.message-content p {
+    margin: 0.5rem 0;
+}
+
+.message-content code {
+    background-color: #F3F4F6;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+}
+
+.message-content pre {
+    background-color: #F3F4F6;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    white-space: pre; /* Override to preserve code formatting */
+}
+
+.message-content blockquote {
+    border-left: 4px solid #E5E7EB;
+    padding-left: 1rem;
+    margin: 0.5rem 0;
+    color: #6B7280;
+    font-style: italic;
 }
 
 .input-form {
@@ -107,7 +174,7 @@
 .message-input:focus {
     outline: none;
     border-color: #7C3AED;
-    ring: 2px solid #7C3AED;
+    box-shadow: 0 0 0 2px #7C3AED;
     background-color: #ffffff;
 }
 
