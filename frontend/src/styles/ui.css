@@ -1,0 +1,55 @@
+/* Shared UI tokens and base styles for a clean, modern look */
+:root {
+  --surface: #f8fafc; /* page background */
+  --surface-muted: #ffffff; /* cards / footers */
+  --text-default: #0f172a; /* dark text */
+  --muted: #6b7280;
+  --accent: #7c3aed;
+  --accent-600: #6d28d9;
+}
+
+/* apply base */
+html, body, #root {
+  height: 100%;
+  background-color: var(--surface);
+  color: var(--text-default);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* semantic helper classes used in components */
+.bg-surface { background-color: var(--surface); }
+.bg-surface-muted { background-color: var(--surface-muted); }
+.text-base-900 { color: var(--text-default); }
+
+/* container utility fallback for projects without a custom container - keep consistent max width */
+.container {
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .container { padding-left: 2rem; padding-right: 2rem; }
+}
+
+/* small utility tweaks */
+a { color: inherit; }
+
+/* card subtle shadow used across components */
+.card-soft {
+  background: var(--surface-muted);
+  border-radius: 0.5rem;
+  box-shadow: 0 6px 18px rgba(12, 17, 25, 0.04);
+}
+
+/* smaller form controls default */
+input, textarea, select {
+  border-radius: 0.5rem;
+}
+
+/* make images and iframes look nicer */
+img, iframe { border-radius: 0.5rem; }

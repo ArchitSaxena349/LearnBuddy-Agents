@@ -70,7 +70,7 @@
 
 .user-message {
     margin-left: auto;
-    background-color: #7C3AED;
+    background-color: var(--accent);
     color: white;
 }
 
@@ -173,24 +173,24 @@
 
 .message-input:focus {
     outline: none;
-    border-color: #7C3AED;
-    box-shadow: 0 0 0 2px #7C3AED;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
     background-color: #ffffff;
 }
 
 .send-button {
     padding: 0.75rem 1.5rem;
-    background-color: #7C3AED;
+    background-color: var(--accent);
     color: white;
     border: none;
     border-radius: 0.5rem;
     cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 500;
+    transition: all 0.15s ease;
+    font-weight: 600;
 }
 
 .send-button:hover {
-    background-color: #6D28D9;
+    background-color: var(--accent-600);
 }
 
 .typing-indicator {
@@ -207,7 +207,7 @@
 .typing-indicator span {
     width: 8px;
     height: 8px;
-    background-color: #7C3AED;
+    background-color: var(--accent);
     border-radius: 50%;
     animation: typing 1s infinite ease-in-out;
     opacity: 0.6;
