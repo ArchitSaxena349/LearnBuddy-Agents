@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { getGeminiResponse } from '../config/gemini';
 import '../styles/companion-chat.css';
 
-const BASE_URL = 'https://lenita-decidual-evita.ngrok-free.dev';
+const BASE_URL = 'https://learnbuddy-api.onrender.com';
 
 const CompanionChat = () => {
     const [messages, setMessages] = useState(() => {
