@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://learnbuddy-agents.onrender.com';
 
 export default function ARPromptInput({ onModelLoaded, isLoading, setIsLoading }) {
   const [prompt, setPrompt] = useState('');
