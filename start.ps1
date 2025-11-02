@@ -20,8 +20,8 @@ Write-Host "✅ Prerequisites check passed" -ForegroundColor Green
 Write-Host ""
 
 # Check if .env files exist
-if (-not (Test-Path "LearningBuddy\.env")) {
-    Write-Host "⚠️  Warning: LearningBuddy\.env not found" -ForegroundColor Yellow
+if (-not (Test-Path "frontend\.env")) {
+    Write-Host "⚠️  Warning: frontend\.env not found" -ForegroundColor Yellow
     Write-Host "   Create it with VITE_GEMINI_API_KEY and VITE_BACKEND_URL" -ForegroundColor Yellow
 }
 
@@ -34,9 +34,9 @@ Write-Host ""
 Write-Host "📦 Installing dependencies (if needed)..." -ForegroundColor Cyan
 
 # Install frontend dependencies if node_modules doesn't exist
-if (-not (Test-Path "LearningBuddy\node_modules")) {
+if (-not (Test-Path "frontend\node_modules")) {
     Write-Host "Installing frontend dependencies..." -ForegroundColor Cyan
-    Set-Location LearningBuddy
+    Set-Location frontend
     npm install
     Set-Location ..
 }
@@ -71,6 +71,6 @@ if (Test-Path "node_modules\concurrently") {
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD\backend'; python -m uvicorn main:app --reload --port 8000"
     Start-Sleep -Seconds 2
     Write-Host "Opening frontend..." -ForegroundColor Cyan
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD\LearningBuddy'; npm run dev"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD\frontend'; npm run dev"
 }
 

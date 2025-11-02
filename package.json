@@ -4,12 +4,12 @@
   "description": "LearnBuddy - AI-Powered Learning Platform",
   "scripts": {
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "dev:frontend": "cd LearningBuddy && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && python -m uvicorn main:app --reload --port 8000",
     "install:all": "npm run install:frontend && npm run install:backend",
-    "install:frontend": "cd LearningBuddy && npm install",
+    "install:frontend": "cd frontend && npm install",
     "install:backend": "cd backend && pip install -r requirements.txt",
-    "build": "cd LearningBuddy && npm run build"
+    "build": "cd frontend && npm run build"
   },
   "keywords": [
     "education",
