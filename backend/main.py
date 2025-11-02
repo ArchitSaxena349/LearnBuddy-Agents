@@ -1,7 +1,9 @@
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
+from urllib.parse import quote as urlquote
 import os
 import json
 import httpx
@@ -183,7 +185,7 @@ async def motivation_agent(payload: MotivationRequest):
 
 
 @app.post("/api/ar/generate")
-async def generate_ar_model(payload: ARPromptRequest):
+async def generate_ar_model(payload: ARPromptRequest, request: Request):
     """
     Generate a 3D model based on a text prompt using Meshy.ai
     """
@@ -192,7 +194,8 @@ async def generate_ar_model(payload: ARPromptRequest):
         if not meshy_api_key:
             # Fallback to a sample model if API key is not set
             fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-            return {"modelUrl": fallback_model}
+            # Return a proxied URL so the frontend loads the model through this backend (avoids CORS issues)
+            return {"modelUrl": str(request.base_url) + f"api/ar/proxy?url={urlquote(fallback_model, safe='')}"}
 
         # Call Meshy.ai text-to-3D API
         async with httpx.AsyncClient() as client:
@@ -251,7 +254,8 @@ async def generate_ar_model(payload: ARPromptRequest):
                             status_code=500,
                             detail="Model URL not found in successful response"
                         )
-                    return {"modelUrl": model_url}
+                    # Return a proxied URL to avoid CORS issues when loading from the browser
+                    return {"modelUrl": str(request.base_url) + f"api/ar/proxy?url={urlquote(model_url, safe='') }"}
                     
                 elif status in ['FAILED', 'CANCELLED']:
                     error_msg = job_data.get('error', 'Unknown error')
@@ -283,3 +287,24 @@ async def generate_ar_model(payload: ARPromptRequest):
 @app.get("/")
 async def home():
     return {"message": "Welcome to LearnBuddy Multi-Agent API!"}
+
+
+@app.get("/api/ar/proxy")
+async def ar_proxy(url: str):
+    """
+    Proxy a remote model URL through the backend to avoid CORS issues for the browser GLTF loader.
+    Example: /api/ar/proxy?url=https%3A%2F%2Fexample.com%2Fmodel.glb
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=30.0)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=502, detail="Upstream fetch failed")
+            content_type = resp.headers.get("content-type", "application/octet-stream")
+            return StreamingResponse(resp.aiter_bytes(), media_type=content_type)
+    except httpx.RequestError as e:
+        print(f"Error proxying URL {url}: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        print(f"Unexpected error in ar_proxy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
