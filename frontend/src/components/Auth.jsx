@@ -16,10 +16,12 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left side - Form */}
-      <div className="w-full lg:w-1/2 p-8 flex flex-col justify-center items-center">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container px-4 py-12">
+        <div className="flex flex-col lg:flex-row bg-white rounded-lg overflow-hidden">
+          {/* Left side - Form */}
+          <div className="w-full lg:w-1/2 p-6 lg:p-10 flex flex-col justify-center items-center">
+            <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold mb-2">{isLogin ? 'Log In' : 'Sign Up'}</h1>
           <p className="text-gray-600 mb-8">Welcome back! Please enter your details</p>
 
@@ -112,12 +114,29 @@ const Auth = () => {
             </button>
           </p>
         </div>
-      </div>
+            <p className="mt-8 text-center text-sm text-gray-600">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="font-medium text-purple-600 hover:underline"
+              >
+                {isLogin ? 'Sign up' : 'Log in'}
+              </button>
+            </p>
+          </div>
 
-      {/* Right side - Image */}
-      <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-purple-400 to-purple-600 p-12">
-        <div className="h-full w-full bg-contain bg-center bg-no-repeat"
-             style={{backgroundImage: "url('/src/assets/fitness-woman.jpg')"}}></div>
+          {/* Right side - Image for large screens */}
+          <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-purple-400 to-purple-600 p-6 lg:p-12">
+            <div className="h-full w-full bg-contain bg-center bg-no-repeat rounded-r-lg"
+                 style={{backgroundImage: "url('/src/assets/fitness-woman.jpg')"}}></div>
+          </div>
+
+          {/* Mobile image shown under form */}
+          <div className="block lg:hidden w-full p-4 bg-gray-50">
+            <img src="/src/assets/fitness-woman.jpg" alt="illustration" className="w-full h-48 object-cover rounded-lg shadow-sm" />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -287,7 +287,7 @@ const CompanionChat = () => {
 
     return (
         <div className="min-h-[calc(100vh-4rem)] bg-gray-50 p-4">
-            <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="container max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
                 <div className="chat-header">
                     <h2>Your AI Companion</h2>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -340,7 +340,7 @@ const CompanionChat = () => {
                     {renderCustomInput('subject', 'e.g., teach me javascript basics...')}
                     {renderCustomInput('feedback', 'e.g., correct this code...')}
                 </div>
-                <div className="messages-container min-h-[60vh] max-h-[70vh]">
+                <div className="messages-container min-h-[50vh] md:min-h-[60vh] max-h-[70vh]">
                     {messages.map((message, index) => (
                         <div 
                             key={index} 

@@ -9,7 +9,7 @@ const Header = () => {
       <div className="container mx-auto px-4 py-3 relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Link to="/" className="text-2xl font-extrabold text-purple-600 tracking-tight">Learnify</Link>
+            <Link to="/" className="text-2xl font-extrabold text-purple-600 tracking-tight">LearnBuddy Agents</Link>
             <span className="hidden sm:inline text-sm text-gray-500">AI · AR · Learning</span>
           </div>
 

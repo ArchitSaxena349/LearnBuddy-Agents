@@ -16,10 +16,12 @@ const Contact = () => {
   };
 
   return (
-    <div className="flex min-h-screen animate-fade-in">
-      {/* Left side - Form */}
-      <div className="w-full lg:w-1/2 p-8 flex flex-col justify-center items-center bg-white">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 animate-fade-in">
+      <div className="container px-4 py-12">
+        <div className="flex flex-col lg:flex-row bg-white rounded-lg overflow-hidden">
+          {/* Left side - Form */}
+          <div className="w-full lg:w-1/2 p-6 lg:p-10 flex flex-col justify-center items-center">
+            <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold mb-2 text-gray-800">Contact Us</h1>
           <p className="text-gray-600 mb-8">We'd love to hear from you! Fill out the form below.</p>
 
@@ -105,23 +107,42 @@ const Contact = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
               Prefer another way? Reach us at{" "}
-              <a href="mailto:support@learnyfy.com" className="text-purple-600 hover:underline">
-                support@learnyfy.com
+              <a href="mailto:support@learnbuddy.com" className="text-purple-600 hover:underline">
+                support@learnbuddy.com
               </a>
             </p>
           </div>
         </div>
-      </div>
+            <div className="mt-6 text-center">
+              <p className="text-gray-600 text-sm">
+                Prefer another way? Reach us at{' '}
+                <a href="mailto:support@learnbuddy.com" className="text-purple-600 hover:underline">
+                  support@learnbuddy.com
+                </a>
+              </p>
+            </div>
+          </div>
 
-      {/* Right side - Image */}
-      <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-purple-400 to-purple-600 p-12">
-        <div
-          className="h-full w-full bg-contain bg-center bg-no-repeat animate-pulse-slow"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1516321310764-959200eb3e35?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')",
-          }}
-        ></div>
+          {/* Right side - Image for large screens */}
+          <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-purple-400 to-purple-600 p-6 lg:p-12">
+            <div
+              className="h-full w-full bg-contain bg-center bg-no-repeat animate-pulse-slow rounded-r-lg"
+              style={{
+                backgroundImage:
+                  "url('https://images.unsplash.com/photo-1516321310764-959200eb3e35?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')",
+              }}
+            ></div>
+          </div>
+
+          {/* Mobile image shown under form on small screens */}
+          <div className="block lg:hidden w-full p-4 bg-gray-50">
+            <img
+              src="https://images.unsplash.com/photo-1516321310764-959200eb3e35?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+              alt="Contact visual"
+              className="w-full h-48 object-cover rounded-lg shadow-sm"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <h3 className="text-lg font-semibold mb-2">Learnify</h3>
+            <h3 className="text-lg font-semibold mb-2">LearnBuddy Agents</h3>
             <p className="text-sm text-gray-500">AI-powered learning with AR and interactive content.</p>
           </div>
 
@@ -29,7 +29,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-6 text-center text-xs text-gray-500">
-          &copy; {new Date().getFullYear()} Learnify — All rights reserved.
+          &copy; {new Date().getFullYear()} LearnBuddy Agents — All rights reserved.
         </div>
       </div>
     </footer>

@@ -35,13 +35,13 @@ const Home = () => {
     <div className="min-h-screen bg-gray-50 pt-16">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-        <div className="container mx-auto px-6 py-24">
+        <div className="container px-4 py-16 sm:py-20">
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="md:w-1/2 mb-8 md:mb-0">
+            <div className="w-full md:w-1/2 mb-8 md:mb-0">
               <motion.h1 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-4xl md:text-6xl font-bold mb-6"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6"
               >
                 Welcome to Learnify
               </motion.h1>
@@ -49,7 +49,7 @@ const Home = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-xl mb-8"
+                className="text-base sm:text-lg mb-8"
               >
                 Where AI, Gamification, and AR Redefine Learning
 
@@ -58,7 +58,7 @@ const Home = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-purple-100 transition duration-300"
+                className="bg-white text-purple-600 px-6 sm:px-8 py-3 rounded-full font-semibold hover:bg-purple-100 transition duration-300"
               >
                 Start Learning
               </motion.button>
@@ -67,12 +67,12 @@ const Home = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              className="md:w-1/2"
+              className="w-full md:w-1/2"
             >
               <img 
                 src="/src/assets/hero-image.png" 
                 alt="Learning illustration" 
-                className="w-full h-auto"
+                className="w-full h-48 sm:h-64 md:h-auto object-cover rounded-lg shadow-md"
               />
             </motion.div>
           </div>

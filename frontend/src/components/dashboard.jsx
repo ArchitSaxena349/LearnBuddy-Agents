@@ -150,16 +150,16 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-6"
+          className="fixed md:static bottom-0 left-0 right-0 md:bottom-auto bg-white shadow-lg p-4 md:p-6 z-40"
         >
-          <div className="container mx-auto flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-semibold">{selectedCourse.title}</h3>
-              <p className="text-gray-600">{selectedCourse.category}</p>
+          <div className="container flex flex-col md:flex-row md:justify-between items-center gap-3">
+            <div className="text-left">
+              <h3 className="text-lg md:text-xl font-semibold">{selectedCourse.title}</h3>
+              <p className="text-gray-600 text-sm md:text-base">{selectedCourse.category}</p>
             </div>
             <button
               onClick={handleStartCourse}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-300"
+              className="w-full md:w-auto px-4 md:px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-300"
             >
               Start Course
             </button>
