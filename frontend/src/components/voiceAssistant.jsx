@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled }) {
+export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled, target = 'general' }) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef(null);
@@ -42,7 +42,7 @@ export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled
       setListening(false);
       // deliver final transcript from ref to avoid stale state
       const finalText = transcriptRef.current || transcript;
-      if (finalText && onResult) onResult(finalText.trim());
+      if (finalText && onResult) onResult(finalText.trim(), target);
     };
 
     recog.onerror = (e) => {
