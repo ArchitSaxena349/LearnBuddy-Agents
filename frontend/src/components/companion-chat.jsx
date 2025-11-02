@@ -30,7 +30,8 @@ const CompanionChat = () => {
     });
     const messagesEndRef = useRef(null);
     const [voiceEnabled, setVoiceEnabled] = useState(false);
-    const [targetAgent, setTargetAgent] = useState('general');
+    // Default to planner (one of the four agents)
+    const [targetAgent, setTargetAgent] = useState('planner');
 
     // Function to make POST requests to the endpoints
     const makePostRequest = async (endpoint, data) => {
@@ -205,7 +206,7 @@ const CompanionChat = () => {
     };
 
     // Handler used by VoiceAssistant to send transcribed text to the selected agent
-    const handleVoiceResult = async (text, target = 'general') => {
+    const handleVoiceResult = async (text, target = 'planner') => {
         if (!text || !text.trim()) return;
         const userMessage = { role: 'user', content: text };
         setMessages(prev => [...prev, userMessage]);
@@ -221,19 +222,8 @@ const CompanionChat = () => {
             } else if (target === 'feedback') {
                 await sendRequestToEndpoint('/feedback', { input: text });
             } else {
-                // general chat -> Gemini
-                const response = await getGeminiResponse(text);
-                setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-                // Speak response if enabled
-                if (voiceEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
-                    try {
-                        const utter = new SpeechSynthesisUtterance(response);
-                        window.speechSynthesis.cancel();
-                        window.speechSynthesis.speak(utter);
-                    } catch (e) {
-                        console.warn('TTS failed:', e);
-                    }
-                }
+                // Unknown target — inform the user
+                setMessages(prev => [...prev, { role: 'assistant', content: "Please select one of the available agents (Planner, Motivation, Subject, Feedback)." }]);
             }
         } catch (err) {
             console.error('Voice send error', err);
@@ -305,7 +295,6 @@ const CompanionChat = () => {
                             <label style={{ fontSize: 13, display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <span style={{ fontWeight: 600 }}>Agent:</span>
                                 <select value={targetAgent} onChange={(e) => setTargetAgent(e.target.value)} style={{ padding: 6, borderRadius: 6 }}>
-                                    <option value="general">Chat (General)</option>
                                     <option value="planner">Planner</option>
                                     <option value="motivation">Motivation</option>
                                     <option value="subject">Teach Subject</option>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled, target = 'general' }) {
+export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled, target = 'planner' }) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef(null);
