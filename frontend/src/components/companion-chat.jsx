@@ -3,7 +3,8 @@ import { getGeminiResponse } from '../config/gemini';
 import '../styles/companion-chat.css';
 import VoiceAssistant from './voiceAssistant';
 
-const BASE_URL = 'https://learnbuddy-api.onrender.com';
+// Prefer an env-provided API base URL. In dev default to local backend at 127.0.0.1:8000
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'development' ? 'http://127.0.0.1:8000' : 'https://learnbuddy-api.onrender.com');
 
 const CompanionChat = () => {
     const [messages, setMessages] = useState(() => {
