@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { getGeminiResponse } from '../config/gemini';
 import '../styles/companion-chat.css';
+import VoiceAssistant from './voiceAssistant';
 
 const BASE_URL = 'https://learnbuddy-api.onrender.com';
 
@@ -27,6 +28,7 @@ const CompanionChat = () => {
         feedback: ''
     });
     const messagesEndRef = useRef(null);
+    const [voiceEnabled, setVoiceEnabled] = useState(false);
 
     // Function to make POST requests to the endpoints
     const makePostRequest = async (endpoint, data) => {
@@ -179,12 +181,48 @@ const CompanionChat = () => {
                 role: 'assistant',
                 content: response
             }]);
+            // Speak response if enabled
+            if (voiceEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
+                try {
+                    const utter = new SpeechSynthesisUtterance(response);
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utter);
+                } catch (e) {
+                    console.warn('TTS failed:', e);
+                }
+            }
         } catch (error) {
             console.error('Error:', error);
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: "I'm having trouble responding right now, but I want you to know that you're not alone. Would you like to try talking about something else?"
             }]);
+        } finally {
+            setIsTyping(false);
+        }
+    };
+
+    // Handler used by VoiceAssistant to send transcribed text
+    const handleVoiceResult = async (text) => {
+        if (!text || !text.trim()) return;
+        const userMessage = { role: 'user', content: text };
+        setMessages(prev => [...prev, userMessage]);
+        setIsTyping(true);
+        try {
+            const response = await getGeminiResponse(text);
+            setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+            if (voiceEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
+                try {
+                    const utter = new SpeechSynthesisUtterance(response);
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utter);
+                } catch (e) {
+                    console.warn('TTS failed:', e);
+                }
+            }
+        } catch (err) {
+            console.error('Voice send error', err);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Sorry — I couldn't process your voice input." }]);
         } finally {
             setIsTyping(false);
         }
@@ -247,9 +285,12 @@ const CompanionChat = () => {
             <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
                 <div className="chat-header">
                     <h2>Your AI Companion</h2>
-                    <button onClick={clearHistory} className="clear-button">
-                        Clear History
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <VoiceAssistant onResult={handleVoiceResult} voiceEnabled={voiceEnabled} setVoiceEnabled={setVoiceEnabled} />
+                        <button onClick={clearHistory} className="clear-button">
+                            Clear History
+                        </button>
+                    </div>
                 </div>
                 <div className="feature-buttons p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b grid grid-cols-2 md:grid-cols-4 gap-2">
                     <button 
