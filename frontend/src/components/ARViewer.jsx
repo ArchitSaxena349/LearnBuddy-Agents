@@ -1,67 +1,81 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, useGLTF, Environment } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
 import { motion } from 'framer-motion';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-// GLTF Model Loader Component
-function Model({ url, scale = 1, onError }) {
+// GLTF Model Loader Component using GLTFLoader for explicit error handling
+function Model({ url, scale = 1, onError, onLoaded }) {
   const [model, setModel] = useState(null);
   const modelRef = useRef();
-  
-  // Load the model with error handling
+
   useEffect(() => {
+    if (!url) return;
     let isMounted = true;
-    
-    const loadModel = async () => {
-      try {
-        // Add timestamp to prevent caching issues
-        const modelUrl = url.includes('?') 
-          ? `${url}&t=${Date.now()}` 
-          : `${url}?t=${Date.now()}`;
-          
-        // Load the GLB model
-        const result = await useGLTF.preload(modelUrl);
-        
-        if (isMounted) {
-          // Set up the model with proper lighting and shadows
-          result.scene.traverse((child) => {
+    const loader = new GLTFLoader();
+
+    const modelUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        if (!isMounted) return;
+
+        try {
+          // Traverse and set up shadows/materials
+          gltf.scene.traverse((child) => {
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
-              // Enable transparency if needed
               if (child.material) {
-                child.material.transparent = true;
-                child.material.opacity = 1.0;
+                child.material.transparent = child.material.transparent || false;
+                child.material.opacity = child.material.opacity ?? 1.0;
               }
             }
           });
-          
+
           // Center the model
-          const box = new THREE.Box3().setFromObject(result.scene);
+          const box = new THREE.Box3().setFromObject(gltf.scene);
           const center = box.getCenter(new THREE.Vector3());
-          result.scene.position.x = -center.x;
-          result.scene.position.y = -center.y;
-          result.scene.position.z = -center.z;
-          
-          setModel(result.scene);
+          gltf.scene.position.x = -center.x;
+          gltf.scene.position.y = -center.y;
+          gltf.scene.position.z = -center.z;
+
+          setModel(gltf.scene);
+          if (onLoaded) onLoaded();
+        } catch (err) {
+          console.error('Error processing GLTF:', err);
+          if (onError) onError(new Error('Failed to process 3D model.'));
         }
-      } catch (err) {
-        console.error('Error loading 3D model:', err);
+      },
+      undefined,
+      (err) => {
+        console.error('GLTFLoader error:', err);
         if (onError) onError(new Error('Failed to load 3D model. Please try again.'));
       }
-    };
-    
-    if (url) {
-      loadModel();
-    }
-    
+    );
+
     return () => {
       isMounted = false;
+      // dispose if needed
+      if (model) {
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.geometry?.dispose?.();
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose && m.dispose());
+            } else {
+              child.material?.dispose?.();
+            }
+          }
+        });
+      }
     };
-  }, [url, onError]);
-  
+  }, [url]);
+
   if (!model) return null;
-  
+
   return <primitive ref={modelRef} object={model} scale={scale} />;
 }
 
@@ -73,32 +87,11 @@ export default function ARViewer({ modelUrl, onClose, prompt }) {
   const [modelLoaded, setModelLoaded] = useState(false);
 
   useEffect(() => {
-    // Reset states when modelUrl changes
+    // Reset states when modelUrl changes — actual loading handled in Model via GLTFLoader
     if (modelUrl) {
       setIsLoading(true);
       setError(null);
       setModelLoaded(false);
-      
-      // Preload the model
-      const loadModel = async () => {
-        try {
-          // Add cache busting to the URL
-          const cacheBustedUrl = modelUrl.includes('?') 
-            ? `${modelUrl}&t=${Date.now()}`
-            : `${modelUrl}?t=${Date.now()}`;
-            
-          // Preload the model
-          await useGLTF.preload(cacheBustedUrl);
-          setModelLoaded(true);
-        } catch (err) {
-          console.error('Failed to preload model:', err);
-          setError('Failed to load the 3D model. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      loadModel();
     }
   }, [modelUrl]);
 
@@ -188,7 +181,7 @@ export default function ARViewer({ modelUrl, onClose, prompt }) {
           <gridHelper args={[10, 10, 0x444444, 0x888888]} rotation={[Math.PI / 2, 0, 0]} />
           
           {/* 3D Model */}
-          {modelUrl && modelLoaded && (
+          {modelUrl && (
             <group>
               <Model 
                 url={modelUrl}
