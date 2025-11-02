@@ -1,0 +1,24 @@
+{
+  "name": "learnbuddy",
+  "version": "1.0.0",
+  "description": "LearnBuddy - AI-Powered Learning Platform",
+  "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:frontend": "cd LearningBuddy && npm run dev",
+    "dev:backend": "cd backend && python -m uvicorn main:app --reload --port 8000",
+    "install:all": "npm run install:frontend && npm run install:backend",
+    "install:frontend": "cd LearningBuddy && npm install",
+    "install:backend": "cd backend && pip install -r requirements.txt",
+    "build": "cd LearningBuddy && npm run build"
+  },
+  "keywords": [
+    "education",
+    "ai",
+    "learning-platform"
+  ],
+  "author": "Archit Saxena",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
