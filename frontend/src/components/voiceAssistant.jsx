@@ -6,6 +6,8 @@ export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef(null);
+  // keep latest transcript in a ref to avoid stale closures in event handlers
+  const transcriptRef = useRef('');
 
   useEffect(() => {
     if (!SpeechRecognition) return;
@@ -22,13 +24,25 @@ export default function VoiceAssistant({ onResult, voiceEnabled, setVoiceEnabled
         if (res.isFinal) final += res[0].transcript;
         else interim += res[0].transcript;
       }
-      setTranscript((prev) => (final ? final : interim));
+      const latest = final ? final : interim;
+      transcriptRef.current = latest;
+      setTranscript(latest);
+
+      // if we have a final result, stop recognition so onend fires and parent gets notified
+      if (final) {
+        try {
+          recog.stop();
+        } catch (e) {
+          // ignore
+        }
+      }
     };
 
     recog.onend = () => {
       setListening(false);
-      // deliver final transcript
-      if (transcript && onResult) onResult(transcript.trim());
+      // deliver final transcript from ref to avoid stale state
+      const finalText = transcriptRef.current || transcript;
+      if (finalText && onResult) onResult(finalText.trim());
     };
 
     recog.onerror = (e) => {
