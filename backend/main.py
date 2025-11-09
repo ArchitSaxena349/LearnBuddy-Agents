@@ -2,31 +2,16 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from groq import Groq
 from urllib.parse import quote as urlquote
 import os
-import json
 import httpx
 import asyncio
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables from .env file (if present)
 load_dotenv()
 
-# --- Initialize app ONCE ---
-app = FastAPI(title="LearnBuddy Multi-Agent API")
-
-# --- Use an environment variable for your key! ---
-# It's safer than hardcoding it.
-# Set this in your .env file: GROQ_API_KEY="your_real_key"
-# For now, we'll make it optional since we're focusing on 3D model generation
-api_key = os.getenv("GROQ_API_KEY")
-
-# Initialize Groq client only if API key is provided
-groq_client = Groq(api_key=api_key) if api_key else None
-
-# --- Delete this line, it's a duplicate ---
-# app = FastAPI() 
+app = FastAPI(title="LearnBuddy - 3D Model API (minimal)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,124 +22,113 @@ app.add_middleware(
 )
 
 
-
 class ARPromptRequest(BaseModel):
     prompt: str
 
 
-# ---------- Agents ----------
-
 @app.post("/api/ar/generate")
 async def generate_ar_model(payload: ARPromptRequest, request: Request):
-    """
-    Generate a 3D model based on a text prompt using Meshy.ai
-    """
-    try:
-        meshy_api_key = os.getenv("MESHY_API_KEY")
-        if not meshy_api_key:
-            # Fallback to a sample model if API key is not set
-            fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-            # Return a proxied URL so the frontend loads the model through this backend (avoids CORS issues)
-            return {"modelUrl": str(request.base_url) + f"api/ar/proxy?url={urlquote(fallback_model, safe='')}"}
+    """Generate a 3D model from text using Meshy.ai (or return a fallback proxied model).
 
-        # Call Meshy.ai text-to-3D API
+    Behavior:
+    - If MESHY_API_KEY is not set, return a proxied URL to a sample GLB.
+    - If set, start a Meshy.ai job and poll until completion (with timeout).
+    """
+    meshy_api_key = os.getenv("MESHY_API_KEY")
+
+    # Simple fallback when Meshy API key isn't configured
+    if not meshy_api_key:
+        fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
+        proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
+        return {"modelUrl": proxy_url}
+
+    # If user provided an API key, call Meshy.ai
+    try:
         async with httpx.AsyncClient() as client:
-            # Start the text-to-3D job
-            response = await client.post(
+            resp = await client.post(
                 "https://api.meshy.ai/v1/text-to-3d",
                 headers={
                     "Authorization": f"Bearer {meshy_api_key}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
                 json={
                     "prompt": payload.prompt,
                     "negative_prompt": "low quality, blurry, distorted, deformed, extra limbs, missing limbs",
                     "art_style": "realistic",
-                    "resolution": "1024"
+                    "resolution": "1024",
                 },
-                timeout=30.0
+                timeout=30.0,
             )
 
-            if response.status_code != 200:
-                error_detail = response.json().get('detail', 'Unknown error')
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Failed to start Meshy.ai job: {error_detail}"
-                )
-            
-            job_id = response.json().get('id')
+            # Accept any 2xx as success (some APIs return 201/202)
+            if resp.status_code // 100 != 2:
+                # Log response for debugging and return fallback proxied model
+                try:
+                    detail = resp.json()
+                except Exception:
+                    detail = resp.text
+                print(f"Meshy.ai start job failed: status={resp.status_code}, detail={detail}")
+                fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
+                proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
+                return {"modelUrl": proxy_url}
+
+            job = resp.json()
+            # Support multiple possible job id keys
+            job_id = job.get("id") or job.get("job_id") or job.get("job")
             if not job_id:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Failed to get job ID from Meshy.ai response"
-                )
-            
-            # Poll for job completion (with timeout)
-            max_attempts = 30  # 30 attempts * 10 seconds = 5 minutes max
-            attempt = 0
-            
-            while attempt < max_attempts:
-                await asyncio.sleep(10)  # Check every 10 seconds
-                
-                job_status = await client.get(
+                print(f"Meshy.ai response missing job id: {job}")
+                raise HTTPException(status_code=500, detail="Meshy.ai did not return a job id")
+
+            # Poll for completion
+            max_attempts = 30
+            for attempt in range(max_attempts):
+                await asyncio.sleep(5)
+                status_resp = await client.get(
                     f"https://api.meshy.ai/v1/text-to-3d/{job_id}",
-                    headers={
-                        "Authorization": f"Bearer {meshy_api_key}"
-                    },
-                    timeout=30.0
+                    headers={"Authorization": f"Bearer {meshy_api_key}"},
+                    timeout=30.0,
                 )
-                
-                job_data = job_status.json()
-                status = job_data.get('status')
-                
-                if status == 'SUCCEEDED':
-                    model_url = job_data.get('model_url')
+                # Continue polling on non-200, but log for debugging
+                if status_resp.status_code // 100 != 2:
+                    print(f"Meshy.ai status check returned {status_resp.status_code}: {status_resp.text}")
+                    continue
+                status_data = status_resp.json()
+                status = (status_data.get("status") or "").upper()
+                if status == "SUCCEEDED" or status == "SUCCESS":
+                    model_url = status_data.get("model_url") or status_data.get("url")
                     if not model_url:
-                        raise HTTPException(
-                            status_code=500,
-                            detail="Model URL not found in successful response"
-                        )
-                    # Return a proxied URL to avoid CORS issues when loading from the browser
-                    return {"modelUrl": str(request.base_url) + f"api/ar/proxy?url={urlquote(model_url, safe='') }"}
-                    
-                elif status in ['FAILED', 'CANCELLED']:
-                    error_msg = job_data.get('error', 'Unknown error')
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Meshy.ai job {status.lower()}: {error_msg}"
-                    )
-                
-                attempt += 1
-            
-            # If we get here, the job timed out
-            raise HTTPException(
-                status_code=504,
-                detail="Timed out waiting for 3D model generation. The model is still being processed."
-            )
+                        print(f"Meshy.ai succeeded but no model_url in: {status_data}")
+                        raise HTTPException(status_code=500, detail="Meshy.ai succeeded but no model_url provided")
+                    proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(model_url, safe='')}"
+                    return {"modelUrl": proxy_url}
+                if status in ("FAILED", "CANCELLED", "ERROR"):
+                    print(f"Meshy.ai job ended with status: {status}, data: {status_data}")
+                    break
+
+            # Timeout or failed - return fallback proxied model
+            print("Meshy.ai job timed out or failed; returning fallback model")
+            fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
+            proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
+            return {"modelUrl": proxy_url}
 
     except httpx.TimeoutException:
-        raise HTTPException(
-            status_code=504,
-            detail="Request to Meshy.ai API timed out. Please try again later."
-        )
+        raise HTTPException(status_code=504, detail="Meshy.ai request timed out")
     except Exception as e:
-        print(f"Error in generate_ar_model: {str(e)}")
-        # Fallback to sample model in case of any error
+        print(f"Unexpected error contacting Meshy.ai: {e}")
+        # On any unexpected error, return fallback proxied model
         fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-        return {"modelUrl": fallback_model}
+        proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
+        return {"modelUrl": proxy_url}
 
 
 @app.get("/")
 async def home():
-    return {"message": "Welcome to LearnBuddy Multi-Agent API!"}
+    return {"message": "Welcome to LearnBuddy - 3D Model API (minimal)"}
 
 
 @app.get("/api/ar/proxy")
 async def ar_proxy(url: str):
-    """
-    Proxy a remote model URL through the backend to avoid CORS issues for the browser GLTF loader.
-    Example: /api/ar/proxy?url=https%3A%2F%2Fexample.com%2Fmodel.glb
-    """
+    """Proxy a remote GLB/GLTF URL through this backend to avoid CORS issues for browser loaders."""
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, timeout=30.0)
@@ -163,8 +137,4 @@ async def ar_proxy(url: str):
             content_type = resp.headers.get("content-type", "application/octet-stream")
             return StreamingResponse(resp.aiter_bytes(), media_type=content_type)
     except httpx.RequestError as e:
-        print(f"Error proxying URL {url}: {e}")
         raise HTTPException(status_code=502, detail=str(e))
-    except Exception as e:
-        print(f"Unexpected error in ar_proxy: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
