@@ -43,7 +43,7 @@ const Home = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6"
               >
-                Welcome to Learnify
+                Welcome to LearnBuddy Agents
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
