@@ -63,14 +63,14 @@ const Dashboard = () => {
   const handleStartCourse = () => {
     // Add course to user's active courses
     // This would typically integrate with a backend
-    console.log(`Starting course: ${selectedCourse.title}`);
+
   };
 
   const earnPoints = (amount) => {
     setUserStats(prev => {
       const newPoints = prev.points + amount;
       let newLevel = prev.level;
-      
+
       // Check for level up
       while (newPoints >= levels[newLevel] && levels[newLevel + 1]) {
         newLevel++;
@@ -102,7 +102,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Progress Bar */}
         <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
           <div
@@ -111,7 +111,7 @@ const Dashboard = () => {
           />
         </div>
         <p className="text-sm text-gray-600">
-          {levels[userStats.level + 1] ? 
+          {levels[userStats.level + 1] ?
             `${levels[userStats.level + 1] - userStats.points} points to next level` :
             "Maximum level reached!"
           }

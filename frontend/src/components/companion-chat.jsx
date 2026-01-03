@@ -37,8 +37,8 @@ const CompanionChat = () => {
     const makePostRequest = async (endpoint, data) => {
         try {
             const url = `${BASE_URL}${endpoint}`;
-            console.log('Making POST request to:', url, 'with data:', data);
-            
+
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -49,14 +49,14 @@ const CompanionChat = () => {
                 credentials: 'omit',
                 body: JSON.stringify(data),
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
-            
+
             const result = await response.json();
-            console.log('Response from', endpoint, ':', result);
+
             return result;
         } catch (error) {
             console.error(`Error calling ${endpoint}:`, error);
@@ -122,7 +122,7 @@ const CompanionChat = () => {
         setIsTyping(true);
         try {
             const result = await makePostRequest(endpoint, data);
-            
+
             // Handle different response formats
             let content = '';
             if (result.plan) {
@@ -147,7 +147,7 @@ const CompanionChat = () => {
                 // Fallback - stringify the entire response
                 content = JSON.stringify(result, null, 2);
             }
-            
+
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: content
@@ -158,7 +158,7 @@ const CompanionChat = () => {
                 errorMessage += ` (${error.message})`;
             }
             errorMessage += ` Make sure the backend server is running on ${BASE_URL}.`;
-            
+
             console.error('Full error:', error);
             setMessages(prev => [...prev, {
                 role: 'assistant',
@@ -309,25 +309,25 @@ const CompanionChat = () => {
                     </div>
                 </div>
                 <div className="feature-buttons p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <button 
+                    <button
                         onClick={handlePlanTrip}
                         className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium transition"
                     >
                         ✈️ Plan Trip
                     </button>
-                    <button 
+                    <button
                         onClick={handleMotivation}
                         className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium transition"
                     >
                         💪 Motivation
                     </button>
-                    <button 
+                    <button
                         onClick={handleTeachSubject}
                         className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded text-sm font-medium transition"
                     >
                         📚 Learn JS
                     </button>
-                    <button 
+                    <button
                         onClick={handleCodeFeedback}
                         className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm font-medium transition"
                     >
@@ -342,8 +342,8 @@ const CompanionChat = () => {
                 </div>
                 <div className="messages-container min-h-[50vh] md:min-h-[60vh] max-h-[70vh]">
                     {messages.map((message, index) => (
-                        <div 
-                            key={index} 
+                        <div
+                            key={index}
                             className={`message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
                         >
                             <div className="message-content">{message.content}</div>

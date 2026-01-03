@@ -16,7 +16,7 @@ The project is organized with **separate frontend and backend** directories that
 
 ```
 LearnBuddy/
-├── LearningBuddy/           # Frontend: React application (standalone)
+├── frontend/           # Frontend: React application (standalone)
 │   ├── src/                 #   - Can run independently
 │   ├── package.json         #   - Own dependencies
 │   └── .env                 #   - Own environment config
@@ -56,7 +56,7 @@ npm install
 
 **Frontend (separate - can be run independently):**
 ```bash
-cd LearningBuddy
+cd frontend
 npm install
 cd ..
 ```
@@ -70,7 +70,7 @@ cd ..
 
 ### Step 2: Configure Environment Variables
 
-**Frontend (`LearningBuddy/.env`):**
+**Frontend (`frontend/.env`):**
 ```env
 VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_BACKEND_URL=http://localhost:8000
@@ -101,7 +101,7 @@ This will start both frontend (port 5173) and backend (port 8000) simultaneously
 
 **Frontend only:**
 ```bash
-cd LearningBuddy
+cd frontend
 npm run dev
 ```
 Access at: http://localhost:5173
@@ -122,7 +122,7 @@ Once running:
 
 ## 🔑 Environment Variables
 
-### Frontend (`LearningBuddy/.env`)
+### Frontend (`frontend/.env`)
 
 ```env
 VITE_GEMINI_API_KEY=your_gemini_api_key

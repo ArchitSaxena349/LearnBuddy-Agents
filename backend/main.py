@@ -1,140 +1,208 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from urllib.parse import quote as urlquote
-import os
 import httpx
 import asyncio
+import os
 from dotenv import load_dotenv
+from groq import Groq
 
-# Load environment variables from .env file (if present)
+# Load .env variables
 load_dotenv()
 
-app = FastAPI(title="LearnBuddy - 3D Model API (minimal)")
+# --- API Keys ---
+MESHY_API_KEY = os.getenv("MESHY_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Initialize Groq client
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
+# --- FastAPI app setup ---
+app = FastAPI(title="AI 3D Model Generator (Groq + Meshy.ai)")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Change this to your frontend URL in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-class ARPromptRequest(BaseModel):
+# --- Data model for incoming prompt ---
+class ModelPrompt(BaseModel):
     prompt: str
 
 
-@app.post("/api/ar/generate")
-async def generate_ar_model(payload: ARPromptRequest, request: Request):
-    """Generate a 3D model from text using Meshy.ai (or return a fallback proxied model).
-
-    Behavior:
-    - If MESHY_API_KEY is not set, return a proxied URL to a sample GLB.
-    - If set, start a Meshy.ai job and poll until completion (with timeout).
+# --- Main endpoint: Generate 3D Model ---
+@app.post("/api/generate-model")
+async def generate_model(payload: ModelPrompt, request: Request):
     """
-    meshy_api_key = os.getenv("MESHY_API_KEY")
+    1️⃣ User provides a text prompt.
+    2️⃣ Groq AI enhances it into a detailed 3D description.
+    3️⃣ Meshy.ai (v2 Preview) generates a 3D model.
+    4️⃣ Returns a proxy URL to display the model in the browser.
+    """
+    if not MESHY_API_KEY:
+        raise HTTPException(status_code=500, detail="Missing MESHY_API_KEY in environment.")
+    if not groq_client:
+        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY in environment.")
 
-    # Simple fallback when Meshy API key isn't configured
-    if not meshy_api_key:
-        fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-        proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
-        return {"modelUrl": proxy_url}
+    # Step 1: Enhance the prompt with Groq
+    try:
+        refined_prompt = await enhance_prompt_with_groq(payload.prompt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Groq prompt enhancement failed: {e}")
 
-    # If user provided an API key, call Meshy.ai
+    # Step 2: Send to Meshy.ai (v2) for 3D generation
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.meshy.ai/v1/text-to-3d",
-                headers={
-                    "Authorization": f"Bearer {meshy_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "prompt": payload.prompt,
-                    "negative_prompt": "low quality, blurry, distorted, deformed, extra limbs, missing limbs",
-                    "art_style": "realistic",
-                    "resolution": "1024",
-                },
+            headers = {
+                "Authorization": f"Bearer {MESHY_API_KEY}",
+                "Content-Type": "application/json",
+            }
+            
+            # Use Meshy v2 "preview" mode for faster generation
+            payload_data = {
+                "mode": "preview",
+                "prompt": refined_prompt,
+                "negative_prompt": "low quality, distorted, deformed, incomplete, blurry",
+                "art_style": "realistic",
+                "ai_model": "meshy-4" # or "latest"
+            }
+
+            start_resp = await client.post(
+                "https://api.meshy.ai/openapi/v2/text-to-3d",
+                headers=headers,
+                json=payload_data,
                 timeout=30.0,
             )
 
-            # Accept any 2xx as success (some APIs return 201/202)
-            if resp.status_code // 100 != 2:
-                # Log response for debugging and return fallback proxied model
-                try:
-                    detail = resp.json()
-                except Exception:
-                    detail = resp.text
-                print(f"Meshy.ai start job failed: status={resp.status_code}, detail={detail}")
-                fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-                proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
-                return {"modelUrl": proxy_url}
+            if start_resp.status_code // 100 != 2:
+                detail = await _safe_json(start_resp)
+                raise HTTPException(status_code=start_resp.status_code, detail=f"Meshy start failed: {detail}")
 
-            job = resp.json()
-            # Support multiple possible job id keys
-            job_id = job.get("id") or job.get("job_id") or job.get("job")
+            job = start_resp.json()
+            # v2 usually returns "result" -> "id" or just "result" as ID in some versions, 
+            # but based on standard openapi/v2 it returns a task object.
+            # Let's inspect 'result' keyword closely if documented, but usually it's 'result' key containing the ID.
+            # However, looking at standard async APIs, it often returns "result": "task_id" string or "result": { id: ... }
+            # Let's handle generic 'result' or 'id'.
+            # Reviewing search structure: Response is "result": "task_id" (string) for some calls, or object.
+            # Let's assume standard structure: {"result": "task_id_string"}
+            
+            job_id = job.get("result")
             if not job_id:
-                print(f"Meshy.ai response missing job id: {job}")
-                raise HTTPException(status_code=500, detail="Meshy.ai did not return a job id")
+                # Fallback check
+                job_id = job.get("id")
+            
+            if not job_id:
+                raise HTTPException(status_code=500, detail=f"Meshy.ai did not return a job ID. Response: {job}")
 
-            # Poll for completion
-            max_attempts = 30
-            for attempt in range(max_attempts):
+            # Step 3: Poll job until success
+            # v2 polling: GET https://api.meshy.ai/openapi/v2/text-to-3d/{job_id}
+            for _ in range(30):  # up to ~150 seconds
                 await asyncio.sleep(5)
                 status_resp = await client.get(
-                    f"https://api.meshy.ai/v1/text-to-3d/{job_id}",
-                    headers={"Authorization": f"Bearer {meshy_api_key}"},
+                    f"https://api.meshy.ai/openapi/v2/text-to-3d/{job_id}",
+                    headers=headers,
                     timeout=30.0,
                 )
-                # Continue polling on non-200, but log for debugging
+
                 if status_resp.status_code // 100 != 2:
-                    print(f"Meshy.ai status check returned {status_resp.status_code}: {status_resp.text}")
                     continue
+
                 status_data = status_resp.json()
-                status = (status_data.get("status") or "").upper()
-                if status == "SUCCEEDED" or status == "SUCCESS":
-                    model_url = status_data.get("model_url") or status_data.get("url")
+                # v2 status keys: "status": "SUCCEEDED" / "FAILED" / "IN_PROGRESS"
+                status = status_data.get("status", "").upper()
+
+                if status == "SUCCEEDED":
+                    model_urls = status_data.get("model_urls", {})
+                    # v2 preview often returns glb in 'glb' key inside model_urls
+                    model_url = model_urls.get("glb")
+                    
                     if not model_url:
-                        print(f"Meshy.ai succeeded but no model_url in: {status_data}")
-                        raise HTTPException(status_code=500, detail="Meshy.ai succeeded but no model_url provided")
-                    proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(model_url, safe='')}"
-                    return {"modelUrl": proxy_url}
-                if status in ("FAILED", "CANCELLED", "ERROR"):
-                    print(f"Meshy.ai job ended with status: {status}, data: {status_data}")
-                    break
+                        raise HTTPException(status_code=500, detail=f"Meshy succeeded but no GLB url found. Data: {status_data}")
+                        
+                    proxy_url = str(request.url_for("proxy_model")) + f"?url={urlquote(model_url, safe='')}"
+                    return {
+                        "refinedPrompt": refined_prompt,
+                        "modelUrl": proxy_url
+                    }
 
-            # Timeout or failed - return fallback proxied model
-            print("Meshy.ai job timed out or failed; returning fallback model")
-            fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-            proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
-            return {"modelUrl": proxy_url}
+                if status in ("FAILED", "EXPIRED", "REJECTED"):
+                     raise HTTPException(status_code=500, detail=f"Meshy job failed: {status_data}")
 
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Meshy.ai request timed out")
+            raise HTTPException(status_code=504, detail="Meshy.ai job timed out.")
+
     except Exception as e:
-        print(f"Unexpected error contacting Meshy.ai: {e}")
-        # On any unexpected error, return fallback proxied model
-        fallback_model = "https://models.readyplayer.me/64e6d623a91e79002003b8b9.glb"
-        proxy_url = str(request.url_for("ar_proxy")) + f"?url={urlquote(fallback_model, safe='')}"
-        return {"modelUrl": proxy_url}
+        raise HTTPException(status_code=500, detail=f"Meshy request failed: {e}")
 
 
-@app.get("/")
-async def home():
-    return {"message": "Welcome to LearnBuddy - 3D Model API (minimal)"}
-
-
-@app.get("/api/ar/proxy")
-async def ar_proxy(url: str):
-    """Proxy a remote GLB/GLTF URL through this backend to avoid CORS issues for browser loaders."""
+# --- Proxy Route ---
+@app.get("/api/proxy-model")
+async def proxy_model(url: str):
+    """
+    Proxies a 3D model file (GLB/GLTF) to avoid CORS issues in browser-based 3D viewers.
+    """
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(url, timeout=30.0)
+            resp = await client.get(url, timeout=60.0)
             if resp.status_code != 200:
-                raise HTTPException(status_code=502, detail="Upstream fetch failed")
+                raise HTTPException(status_code=502, detail="Failed to fetch model from upstream.")
             content_type = resp.headers.get("content-type", "application/octet-stream")
             return StreamingResponse(resp.aiter_bytes(), media_type=content_type)
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Proxy error: {e}")
+
+
+# --- Helper: Call Groq API to enhance user prompt ---
+async def enhance_prompt_with_groq(user_prompt: str) -> str:
+    """
+    Sends a user prompt to Groq to generate a detailed, descriptive version for 3D model creation.
+    """
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a 3D prompt enhancement assistant. Expand short prompts into detailed 3D object descriptions suitable for Meshy.ai text-to-3D generation."
+                },
+                {
+                    "role": "user",
+                    "content": f"Expand this into a vivid 3D description: '{user_prompt}'"
+                }
+            ],
+            temperature=1,
+            max_completion_tokens=1024,
+            top_p=1,
+            stream=True,
+            stop=None
+        )
+
+        # Collect streaming response
+        refined_text = ""
+        for chunk in completion:
+            content = chunk.choices[0].delta.content or ""
+            refined_text += content
+
+        return refined_text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Groq API failed: {e}")
+
+
+# --- Helper: safely extract JSON or text ---
+async def _safe_json(resp: httpx.Response):
+    try:
+        return resp.json()
+    except Exception:
+        return resp.text
+
+
+# --- Root route ---
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the AI 3D Model Generator API (Groq + Meshy.ai) 🚀"}

@@ -15,7 +15,7 @@ export default function ARPromptInput({ onModelLoaded, isLoading, setIsLoading }
     setError(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/ar/generate`, {
+      const response = await fetch(`${BACKEND_URL}/api/generate-model`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export default function ARPromptInput({ onModelLoaded, isLoading, setIsLoading }
       }
 
       const data = await response.json();
-      
+
       if (data.modelUrl) {
         onModelLoaded(data.modelUrl, prompt);
         setPrompt('');
@@ -63,7 +63,7 @@ export default function ARPromptInput({ onModelLoaded, isLoading, setIsLoading }
             disabled={isLoading}
           />
         </div>
-        
+
         {error && (
           <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
             {error}
